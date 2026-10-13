@@ -1,0 +1,13 @@
+{
+  "name": "gamehub",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "install:all": "npm install --prefix front && npm install --prefix back",
+    "dev": "concurrently \"npm run dev --prefix back\" \"npm run dev --prefix front\"",
+    "init-db": "npm run init-db --prefix back"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

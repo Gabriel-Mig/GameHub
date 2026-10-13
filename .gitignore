@@ -1,0 +1,7 @@
+node_modules/
+front/.next/
+front/out/
+back/data/*.sqlite
+back/dist/
+.env
+front/.env.local
