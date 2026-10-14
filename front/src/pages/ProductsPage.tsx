@@ -97,7 +97,6 @@ export function ProductsPage() {
         && (!category || product.category === category);
     })
     .sort((a, b) => sort === "price"
-      // BUG INTENCIONAL 2: preços são comparados como texto, não como números.
       ? String(a.price).localeCompare(String(b.price))
       : a.name.localeCompare(b.name));
 

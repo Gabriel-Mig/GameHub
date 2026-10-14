@@ -74,8 +74,6 @@ VALUES
         NOW()
     );
 
--- PROBLEMA INTENCIONAL: o catálogo não possui índices de apoio para categoria/nome.
--- DROP garante que a condição também vale se o aluno reutilizar um banco antigo.
 DROP INDEX IF EXISTS idx_products_category;
 DROP INDEX IF EXISTS idx_products_name;
 DROP INDEX IF EXISTS idx_products_price;

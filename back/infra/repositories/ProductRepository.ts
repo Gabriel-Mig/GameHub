@@ -32,7 +32,6 @@ export class ProductRepository {
 
     if (filters.category) {
       values.push(filters.category);
-      // BUG INTENCIONAL 1: o filtro compara o nome com a categoria.
       conditions.push(`name = $${values.length}`);
     }
 
@@ -40,7 +39,6 @@ export class ProductRepository {
     const orderBy = filters.sort === "price" ? "price ASC" : "name ASC";
     const sql = `SELECT id, name, description, category, price, stock FROM products ${where} ORDER BY ${orderBy}`;
 
-    // PROBLEMA INTENCIONAL: a mesma consulta pesada é executada duas vezes.
     const firstStartedAt = performance.now();
     const discardedResult = await db.query(sql, values);
     console.info(
@@ -70,7 +68,6 @@ export class ProductRepository {
   }
 
   async getDashboard() {
-    // PROBLEMA INTENCIONAL: quatro consultas sequenciais agregam a mesma tabela.
     const dashboardStartedAt = performance.now();
     const total = await db.query("SELECT COUNT(*) AS value FROM products");
     const lowStock = await db.query("SELECT COUNT(*) AS value FROM products WHERE stock <= 5");
