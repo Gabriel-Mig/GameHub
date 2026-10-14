@@ -2,19 +2,14 @@
 
 Projeto didático full stack para investigar gargalos de desempenho em uma loja de games. O sistema deve continuar funcional; a atividade é descobrir por que ele fica lento e melhorar sem remover funcionalidades.
 
-## Requisitos
-- Node.js 20 ou superior
-- npm
-- PostgreSQL instalado e em execução
-
 ## Preparar o banco
-1. No pgAdmin, crie o banco `gamehub` se ele ainda não existir:
+1. No pgAdmin, crie o banco gamehub se ele ainda não existir:
 
 ```sql
 CREATE DATABASE gamehub;
 ```
 
-2. Copie `back/.env.example` para `back/.env` e configure a senha real do PostgreSQL:
+Arquivo .env:
 
 env
 PORT=3001
@@ -35,6 +30,8 @@ npm run dev
 
 - Front-end: http://localhost:3000
 - API: http://localhost:3001/api/health
+- Login administrador: admin@gamehub.local / 123456
+- Login aluno: aluno@gamehub.local / 123456
 - Login administrador: admin@gamehub.local / 123456
 - Login aluno: aluno@gamehub.local / 123456
 
