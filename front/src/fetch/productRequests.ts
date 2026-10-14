@@ -1,10 +1,11 @@
-import type { ProductDTO } from "@/dto/ProductDTO";
+import type { ProductDTO, ProductPageDTO } from "@/dto/ProductDTO";
 import { apiRequest } from "@/fetch/api";
 
 export interface ProductFilters {
   search?: string;
   category?: string;
   sort?: string;
+  page?: number;
 }
 
 export function getProducts(filters: ProductFilters = {}) {
@@ -13,8 +14,9 @@ export function getProducts(filters: ProductFilters = {}) {
   if (filters.search) params.set("search", filters.search);
   if (filters.category) params.set("category", filters.category);
   if (filters.sort) params.set("sort", filters.sort);
+  if (filters.page) params.set("page", String(filters.page));
 
-  return apiRequest<ProductDTO[]>(`/products?${params.toString()}`);
+  return apiRequest<ProductPageDTO>(`/products?${params.toString()}`);
 }
 
 export function createProduct(product: Omit<ProductDTO, "id">) {

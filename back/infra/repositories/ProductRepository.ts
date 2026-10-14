@@ -6,7 +6,17 @@ export interface ProductFilters {
   search?: string;
   category?: string;
   sort?: string;
+  page?: number;
 }
+
+export interface ProductPage {
+  products: Product[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+const PRODUCT_PAGE_SIZE = 24;
 
 function mapProduct(row: Record<string, unknown>): Product {
   return {
@@ -20,7 +30,7 @@ function mapProduct(row: Record<string, unknown>): Product {
 }
 
 export class ProductRepository {
-  async findAll(filters: ProductFilters): Promise<Product[]> {
+  async findAll(filters: ProductFilters): Promise<ProductPage> {
     const conditions: string[] = [];
     const values: unknown[] = [];
 
@@ -32,25 +42,33 @@ export class ProductRepository {
 
     if (filters.category) {
       values.push(filters.category);
-      conditions.push(`name = $${values.length}`);
+      conditions.push(`category = $${values.length}`);
     }
 
     const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
-    const orderBy = filters.sort === "price" ? "price ASC" : "name ASC";
-    const sql = `SELECT id, name, description, category, price, stock FROM products ${where} ORDER BY ${orderBy}`;
+    const orderBy = filters.sort === "price" ? "price ASC, id ASC" : "name ASC, id ASC";
+    const requestedPage = Number.isInteger(filters.page) && (filters.page ?? 0) > 0
+      ? filters.page ?? 1
+      : 1;
+    const pageQuery = `SELECT id, name, description, category, price, stock FROM products ${where}
+       ORDER BY ${orderBy} LIMIT $${values.length + 1} OFFSET $${values.length + 2}`;
+    const [countResult, pageResult] = await Promise.all([
+      db.query<{ total: string }>(`SELECT COUNT(*) AS total FROM products ${where}`, values),
+      db.query(pageQuery, [...values, PRODUCT_PAGE_SIZE, (requestedPage - 1) * PRODUCT_PAGE_SIZE])
+    ]);
+    const total = Number(countResult.rows[0]?.total ?? 0);
+    const totalPages = Math.max(1, Math.ceil(total / PRODUCT_PAGE_SIZE));
+    const page = Math.min(requestedPage, totalPages);
+    const result = page === requestedPage
+      ? pageResult
+      : await db.query(pageQuery, [...values, PRODUCT_PAGE_SIZE, (page - 1) * PRODUCT_PAGE_SIZE]);
 
-    const firstStartedAt = performance.now();
-    const discardedResult = await db.query(sql, values);
-    console.info(
-      `[SQL LENTO] listagem descartada: ${discardedResult.rowCount ?? 0} linhas em ${(performance.now() - firstStartedAt).toFixed(2)} ms`
-    );
-
-    const secondStartedAt = performance.now();
-    const result = await db.query(sql, values);
-    console.info(
-      `[SQL LENTO] listagem retornada: ${result.rowCount ?? 0} linhas em ${(performance.now() - secondStartedAt).toFixed(2)} ms`
-    );
-    return result.rows.map(mapProduct);
+    return {
+      products: result.rows.map(mapProduct),
+      total,
+      page,
+      pageSize: PRODUCT_PAGE_SIZE
+    };
   }
 
   async create(input: CreateProductDTO): Promise<Product> {
@@ -69,17 +87,27 @@ export class ProductRepository {
 
   async getDashboard() {
     const dashboardStartedAt = performance.now();
-    const total = await db.query("SELECT COUNT(*) AS value FROM products");
-    const lowStock = await db.query("SELECT COUNT(*) AS value FROM products WHERE stock <= 5");
-    const inventory = await db.query("SELECT COALESCE(SUM(price * stock), 0) AS value FROM products");
-    const categories = await db.query("SELECT COUNT(DISTINCT category) AS value FROM products");
-    console.info(`[SQL LENTO] dashboard: 4 consultas sequenciais em ${(performance.now() - dashboardStartedAt).toFixed(2)} ms`);
+    const result = await db.query<{
+      total_products: string;
+      low_stock: string;
+      inventory_value: string;
+      categories: string;
+    }>(
+      `SELECT
+         COUNT(*) AS total_products,
+         COUNT(*) FILTER (WHERE stock <= 5) AS low_stock,
+         COALESCE(SUM(price * stock), 0) AS inventory_value,
+         COUNT(DISTINCT category) AS categories
+       FROM products`
+    );
+    console.info(`[SQL] dashboard agregado em ${(performance.now() - dashboardStartedAt).toFixed(2)} ms`);
+    const metrics = result.rows[0];
 
     return {
-      totalProducts: Number(total.rows[0].value),
-      lowStock: Number(lowStock.rows[0].value),
-      inventoryValue: Number(inventory.rows[0].value),
-      categories: Number(categories.rows[0].value)
+      totalProducts: Number(metrics.total_products),
+      lowStock: Number(metrics.low_stock),
+      inventoryValue: Number(metrics.inventory_value),
+      categories: Number(metrics.categories)
     };
   }
 }

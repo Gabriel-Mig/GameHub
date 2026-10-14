@@ -12,8 +12,12 @@ import { measurePerformance } from "@/utils/measurePerformance";
 export function ProductsPage() {
   const [products, setProducts] = useState<ProductDTO[]>([]);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [category, setCategory] = useState("");
   const [sort, setSort] = useState("name");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(24);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
@@ -31,6 +35,15 @@ export function ProductsPage() {
       setIsAdmin(false);
     }
   }, []);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setPage(1);
+      setDebouncedSearch(search.trim());
+    }, 300);
+
+    return () => window.clearTimeout(timeout);
+  }, [search]);
 
   async function handleCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -65,15 +78,18 @@ export function ProductsPage() {
     try {
       const result = await measurePerformance(
         "carregamento de produtos",
-        () => getProducts({ search, category, sort })
+        () => getProducts({ search: debouncedSearch, category, sort, page })
       );
-      setProducts(result);
+      setProducts(result.products);
+      setTotal(result.total);
+      setPageSize(result.pageSize);
+      if (result.page !== page) setPage(result.page);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Erro inesperado.");
     } finally {
       setLoading(false);
     }
-  }, [search, category, sort]);
+  }, [debouncedSearch, category, sort, page]);
 
   useEffect(() => {
     void loadProducts();
@@ -90,15 +106,7 @@ export function ProductsPage() {
     }
   }
 
-  const visibleProducts = products
-    .filter((product) => {
-      const term = search.toLowerCase();
-      return (product.name.toLowerCase().includes(term) || product.description.toLowerCase().includes(term))
-        && (!category || product.category === category);
-    })
-    .sort((a, b) => sort === "price"
-      ? String(a.price).localeCompare(String(b.price))
-      : a.name.localeCompare(b.name));
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
     <section>
@@ -108,7 +116,7 @@ export function ProductsPage() {
           <h1>Produtos</h1>
           <p>Pesquise e consulte o estoque da loja.</p>
         </div>
-        <span className="result-count">{visibleProducts.length} produtos • catálogo completo</span>
+        <span className="result-count">{total} produtos encontrados</span>
       </div>
 
       {isAdmin && (
@@ -133,7 +141,7 @@ export function ProductsPage() {
         </label>
         <label>
           Categoria
-          <select value={category} onChange={(event) => setCategory(event.target.value)}>
+          <select value={category} onChange={(event) => { setCategory(event.target.value); setPage(1); }}>
             <option value="">Todas</option>
             <option value="Consoles">Consoles</option>
             <option value="Jogos">Jogos</option>
@@ -142,7 +150,7 @@ export function ProductsPage() {
         </label>
         <label>
           Ordenar
-          <select value={sort} onChange={(event) => setSort(event.target.value)}>
+          <select value={sort} onChange={(event) => { setSort(event.target.value); setPage(1); }}>
             <option value="name">Nome</option>
             <option value="price">Preço</option>
           </select>
@@ -151,11 +159,22 @@ export function ProductsPage() {
 
       {loading ? <LoadingState /> : error ? <ErrorState message={error} onRetry={loadProducts} /> : (
         <div className="product-grid">
-          {visibleProducts.map((product) => (
+          {products.map((product) => (
             <ProductCard key={product.id} product={product} onDelete={handleDelete} />
           ))}
-          {visibleProducts.length === 0 && <p>Nenhum produto encontrado.</p>}
+          {products.length === 0 && <p>Nenhum produto encontrado.</p>}
         </div>
+      )}
+      {!loading && !error && total > 0 && (
+        <nav className="pagination" aria-label="Paginação do catálogo">
+          <button className="button button--secondary" disabled={page <= 1} onClick={() => setPage(page - 1)}>
+            Anterior
+          </button>
+          <span className="pagination__status">Página {page} de {totalPages}</span>
+          <button className="button button--secondary" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
+            Próxima
+          </button>
+        </nav>
       )}
     </section>
   );

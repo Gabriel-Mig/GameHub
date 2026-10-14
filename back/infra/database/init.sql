@@ -74,6 +74,9 @@ VALUES
         NOW()
     );
 
-DROP INDEX IF EXISTS idx_products_category;
-DROP INDEX IF EXISTS idx_products_name;
-DROP INDEX IF EXISTS idx_products_price;
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE INDEX IF NOT EXISTS idx_products_category ON products (category);
+CREATE INDEX IF NOT EXISTS idx_products_name ON products (name);
+CREATE INDEX IF NOT EXISTS idx_products_price ON products (price);
+CREATE INDEX IF NOT EXISTS idx_products_name_trgm ON products USING GIN (name gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_products_description_trgm ON products USING GIN (description gin_trgm_ops);

@@ -6,3 +6,10 @@ export interface ProductDTO {
   price: number;
   stock: number;
 }
+
+export interface ProductPageDTO {
+  products: ProductDTO[];
+  total: number;
+  page: number;
+  pageSize: number;
+}

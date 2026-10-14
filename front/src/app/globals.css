@@ -43,6 +43,8 @@ label { display: grid; gap: 8px; color: #4c5871; font-size: 13px; font-weight: 7
 input, select { width: 100%; min-width: 0; padding: 12px 13px; border: 1px solid #d7deea; border-radius: 9px; outline: none; background: white; color: var(--text); }
 input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px #5146e51a; }
 .product-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.pagination { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 28px; }
+.pagination__status { color: var(--muted); font-size: 14px; }
 .product-card { padding: 20px; border: 1px solid var(--border); border-radius: 18px; background: white; box-shadow: 0 8px 28px #20294d05; }
 .product-card h2 { margin: 18px 0 8px; font-size: 20px; }
 .product-card p { min-height: 48px; font-size: 14px; }

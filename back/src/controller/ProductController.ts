@@ -6,12 +6,15 @@ export class ProductController {
   constructor(private readonly service = new ProductService()) {}
 
   list = async (request: Request, response: Response) => {
-    const products = await this.service.list({
+    const requestedPage = Number(request.query.page ?? 1);
+    const page = Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+    const result = await this.service.list({
       search: String(request.query.search ?? ""),
       category: String(request.query.category ?? ""),
-      sort: String(request.query.sort ?? "name")
+      sort: String(request.query.sort ?? "name"),
+      page
     });
-    response.json(products);
+    response.json(result);
   };
 
   create = async (request: Request, response: Response) => {
